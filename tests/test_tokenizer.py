@@ -131,3 +131,75 @@ class TestTokenizer:
         encoded = tokenizer.encode("Hello world, this is a test!")
 
         assert all(0 <= token_id < tokenizer.vocab_size for token_id in encoded)
+
+    # Test that special tokens encode to single token IDs
+    def test_special_tokens_encode_to_single_id(self):
+        from inference_tool.tokenizer import Tokenizer
+
+        tokenizer = Tokenizer("google/gemma-3-270m-it")
+
+        # <end_of_turn> should encode to [106]
+        assert tokenizer.encode("<end_of_turn>") == [106]
+        # <start_of_turn> should encode to [105]
+        assert tokenizer.encode("<start_of_turn>") == [105]
+
+    # Test that special tokens embedded in text are handled correctly
+    def test_special_tokens_in_mixed_content(self):
+        from inference_tool.tokenizer import Tokenizer
+
+        tokenizer = Tokenizer("google/gemma-3-270m-it")
+
+        text = "<start_of_turn>user\nHello<end_of_turn>"
+        encoded = tokenizer.encode(text)
+
+        # Should start with 105 (<start_of_turn>) and end with 106 (<end_of_turn>)
+        assert encoded[0] == 105
+        assert encoded[-1] == 106
+
+    # Test that unicode characters are handled via byte fallback
+    def test_unicode_roundtrip(self):
+        from inference_tool.tokenizer import Tokenizer
+
+        tokenizer = Tokenizer("google/gemma-3-270m-it")
+        original_text = "Café naïve résumé"
+
+        encoded = tokenizer.encode(original_text)
+        decoded = tokenizer.decode(encoded)
+
+        assert decoded == original_text
+
+    # Test that emojis are handled via byte fallback
+    def test_emoji_roundtrip(self):
+        from inference_tool.tokenizer import Tokenizer
+
+        tokenizer = Tokenizer("google/gemma-3-270m-it")
+        original_text = "Hello 👋 World 🌍"
+
+        encoded = tokenizer.encode(original_text)
+        decoded = tokenizer.decode(encoded)
+
+        assert decoded == original_text
+
+    # Test multiline text roundtrip
+    def test_multiline_text_roundtrip(self):
+        from inference_tool.tokenizer import Tokenizer
+
+        tokenizer = Tokenizer("google/gemma-3-270m-it")
+        original_text = "Line 1\nLine 2\nLine 3"
+
+        encoded = tokenizer.encode(original_text)
+        decoded = tokenizer.decode(encoded)
+
+        assert decoded == original_text
+
+    # Test that tabs and special whitespace are preserved
+    def test_whitespace_roundtrip(self):
+        from inference_tool.tokenizer import Tokenizer
+
+        tokenizer = Tokenizer("google/gemma-3-270m-it")
+        original_text = "def foo():\n\treturn 42"
+
+        encoded = tokenizer.encode(original_text)
+        decoded = tokenizer.decode(encoded)
+
+        assert decoded == original_text
